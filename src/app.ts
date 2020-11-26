@@ -3,7 +3,6 @@ import converter from 'csvtojson'
 import path from 'path'
 import { TaskQueue } from 'cwait'
 import moment from 'moment'
-import { first, uniq } from 'lodash'
 import chalk from 'chalk'
 
 import { RawGame } from './@types/RawGame'
@@ -13,6 +12,7 @@ import { reporter } from './utils/reporter'
 // spin instance up using doker
 // docker run -p 9200:9200 -p 9300:9300 --name elastic -e "discovery.type=single-node" -v /home/rayriffy/elastic/config:/usr/share/elasticsearch/config -v /home/rayriffy/elastic/data:/usr/share/elasticsearch/data docker.elastic.co/elasticsearch/elasticsearch:7.10.0
 const ELASTIC_HOST = "http://server.rayriffy.com:9200"
+const INDEX_NAME = "game"
 
 const parsePrice = (input: string): number => {
   const pricePattern = /([\d.]+)/
@@ -62,7 +62,7 @@ const parsePrice = (input: string): number => {
    */
   try {
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-delete-index.html
-    await axios.delete(`${ELASTIC_HOST}/game`)
+    await axios.delete(`${ELASTIC_HOST}/${INDEX_NAME}`)
     reporter.done('Index has been removed')
   } catch {
     reporter.fail('Unable to removed index, but this step is fail-safe!')
@@ -71,7 +71,7 @@ const parsePrice = (input: string): number => {
   /**
    * Create index (https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-create-index.html)
    */
-  await axios.put(`${ELASTIC_HOST}/game`, {
+  await axios.put(`${ELASTIC_HOST}/${INDEX_NAME}`, {
     // define fields (https://www.elastic.co/guide/en/elasticsearch/reference/current/mapping.html)
     // In Elasticsearch, there is no dedicated array data type. Any field can contain zero or more values by default!!!
     mappings: {
@@ -139,7 +139,7 @@ const parsePrice = (input: string): number => {
         // _doc vs _create: _doc automatically generate document id
         try {
           reporter.info(`Pushing ${chalk.blue(game.name)}`)
-          await axios.post(`${ELASTIC_HOST}/game/_doc`, {
+          await axios.post(`${ELASTIC_HOST}/${INDEX_NAME}/_doc`, {
             ...game,
             releaseDate: game.releaseDate === null ? null : game.releaseDate.toISOString(),
           })
