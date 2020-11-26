@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
+    "@types/chalk": "^2.2.0",
     "@types/csvtojson": "^1.1.5",
     "@types/lodash": "^4.14.165",
     "@types/moment": "^2.13.0",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "axios": "^0.21.0",
+    "chalk": "^4.1.0",
     "csvtojson": "^2.0.10",
     "cwait": "^1.1.2",
     "lodash": "^4.17.20",
