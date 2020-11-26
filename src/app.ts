@@ -126,6 +126,7 @@ const parsePrice = (input: string): number => {
    * Dump data
    */
   // create taskqueue to run async only 20 operation at a time (execute 70000 request at one time = your computer dead)
+  // @ts-ignore
   const queue = new TaskQueue(Promise, 20)
   await Promise.all(
     games.map(
@@ -135,11 +136,10 @@ const parsePrice = (input: string): number => {
         try {
           await axios.post(`${ELASTIC_HOST}/game/_doc`, {
             ...game,
-            releaseDate: game.releaseDate?.format('yyyy/MM/dd'),
+            releaseDate: game.releaseDate === null ? null : game.releaseDate.toISOString(),
           })
         } catch (e) {
-          console.error(`Failed tp index ${game.name}`)
-          console.error(e.response.data)
+          console.error(`Failed to index ${game.name}`, e)
         }
       })
     )
