@@ -4,6 +4,7 @@ import path from 'path'
 import { TaskQueue } from 'cwait'
 import moment from 'moment'
 import chalk from 'chalk'
+import { sampleSize } from 'lodash'
 
 import { RawGame } from './@types/RawGame'
 import { Game } from './@types/Game'
@@ -12,7 +13,9 @@ import { reporter } from './utils/reporter'
 // spin instance up using doker
 // docker run -p 9200:9200 -p 9300:9300 --name elastic -e "discovery.type=single-node" -v /home/rayriffy/elastic/config:/usr/share/elasticsearch/config -v /home/rayriffy/elastic/data:/usr/share/elasticsearch/data docker.elastic.co/elasticsearch/elasticsearch:7.10.0
 const ELASTIC_HOST = "http://server.rayriffy.com:9200"
-const INDEX_NAME = "game"
+const INDEX_NAME = "game3"
+
+const DEBUG = false
 
 const parsePrice = (input: string): number => {
   const pricePattern = /([\d.]+)/
@@ -32,10 +35,17 @@ const parsePrice = (input: string): number => {
   const rawFile = path.join(__dirname, '../data/steam_games.csv')
   const transformedData: RawGame[] = await converter().fromFile(rawFile)
 
+  const pickedData = DEBUG ? sampleSize(transformedData, 2) : transformedData
+
+  if (DEBUG) {
+    reporter.info('Raw data converted to Object')
+    console.log(pickedData)
+  }
+
   /**
    * Transform data
    */
-  const games: Game[] = transformedData.map(data => {
+  const games: Game[] = pickedData.map(data => {
     const satisfactionPattern = /(\d+)% of/
     const matchSatisfaction = data.all_reviews.match(satisfactionPattern)
  
@@ -56,6 +66,11 @@ const parsePrice = (input: string): number => {
       price: parsePrice(['NaN', ''].includes(data.discount_price) ? data.original_price : data.discount_price),
     }
   })
+
+  if (DEBUG) {
+    reporter.info('Transformed data')
+    console.log(games)
+  }
 
   /**
    * Destroy old index
@@ -139,10 +154,18 @@ const parsePrice = (input: string): number => {
         // _doc vs _create: _doc automatically generate document id
         try {
           reporter.info(`Pushing ${chalk.blue(game.name)}`)
-          await axios.post(`${ELASTIC_HOST}/${INDEX_NAME}/_doc`, {
+
+          const payload = {
             ...game,
             releaseDate: game.releaseDate === null ? null : game.releaseDate.toISOString(),
-          })
+          }
+
+          if (DEBUG) {
+            reporter.info('Payload')
+            console.log(payload)
+          }
+
+          await axios.post(`${ELASTIC_HOST}/${INDEX_NAME}/_doc`, payload)
         } catch (e) {
           const error = e as AxiosError
 
